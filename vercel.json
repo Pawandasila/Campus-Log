@@ -1,0 +1,8 @@
+{
+    "version": 2,
+    "build": {
+      "env": {
+        "DATABASE_URL": "mongodb+srv://pawandasila06:9gEIOly4iGcywCth@cluster0.sb0iy.mongodb.net/GEHU_VISITOR?retryWrites=true&w=majority&appName=Cluster0"
+      }
+    }
+}
