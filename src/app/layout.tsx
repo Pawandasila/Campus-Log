@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Provider from "./provider";
 import ProgressBar from "@/components/custom/ProgressBar";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "Visitor Dashboard",
@@ -17,7 +18,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={` antialiased`}>
-        <ProgressBar/>
+      <Suspense fallback={null}>
+        <ProgressBar />
+      </Suspense>
         <Provider>{children}</Provider>
       </body>
     </html>
