@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  email       String  @unique
+  username    String   @unique
+  mobileNumber String  @db.String
+  password    String  
+  role        Role     @default(ADMIN)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  GUARD
+  RECEPTIONIST
+}
+
+model VisitorRegistration {
+  id              String  @id @default(auto()) @map("_id") @db.ObjectId
+  name            String  
+  email           String  
+  phoneNumber     String  
+  aadhaarNumber   String  
+  purposeOfVisit  String  
+  visitDate       DateTime  
+  hasVehicle      Boolean @default(false)
+  vehicleNumber   String?
+  userImage       String?
+  qrCodeUrl       String?
+  qrCodeExpiresAt DateTime?
+  isBlocked       Boolean @default(false)
+  blockedReason   String?
+  createdAt       DateTime @default(now())
+  visitorEntries  VisitorEntry[]
+}
+
+model VisitorEntry {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  visitorId         String    @db.ObjectId
+  visitor           VisitorRegistration @relation(fields: [visitorId], references: [id])
+  checkInTime       DateTime  @default(now())
+  checkOutTime      DateTime?
+  isBlocked         Boolean   @default(false)
+  blockedReason     String?
+  entryStatus       EntryStatus @default(CHECKED_IN)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+enum EntryStatus {
+  CHECKED_IN
+  CHECKED_OUT
+}
