@@ -19,7 +19,15 @@ model Account {
 }
 
 model VisitorEntry {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  visitorId    String   @db.ObjectId
+  entryStatus  String
+  isBlocked    Boolean
+  blockedReason String?
+  checkInTime  DateTime @db.Date
+  checkOutTime DateTime? @db.Date
+  updatedAt    DateTime @db.Date
+  visitor      VisitorRegistration @relation("VisitorEntryToVisitorRegistration", fields: [visitorId], references: [id])
 }
 
 model VisitorRegistration {
@@ -35,7 +43,8 @@ model VisitorRegistration {
   qrCodeExpiresAt DateTime @db.Date
   qrCodeUrl       String
   userImage       String
-  /// Could not determine type: the field only had null or empty values in the sample set.
   vehicleNumber   Json?
   visitDate       DateTime @db.Date
+  blockedReason   String?  
+  visitorEntries  VisitorEntry[] @relation("VisitorEntryToVisitorRegistration")
 }

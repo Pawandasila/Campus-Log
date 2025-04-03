@@ -56,8 +56,11 @@ export async function POST(req: NextRequest) {
         visitDate: new Date(),
         hasVehicle,
         vehicleNumber,
-        userImage: photoUrl,
-        qrCodeExpiresAt : expirationDate
+        userImage: photoUrl || "",
+        qrCodeExpiresAt: expirationDate,
+        createdAt: new Date(),
+        isBlocked: false,
+        qrCodeUrl: "",
       },
     });
     

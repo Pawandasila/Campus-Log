@@ -53,7 +53,6 @@ export async function POST(req: Request) {
 
     const qrData = qrDataResult.data;
 
-    // check if the visitor is already been registered or not then only we will continue with the check-in and check-out functionality
     let visitor;
     try {
       visitor = await prisma.visitorRegistration.findUnique({
@@ -61,8 +60,8 @@ export async function POST(req: Request) {
       });
     } catch (error) {
       return NextResponse.json(
-        { error: "Invalid visitor ID format" },
-        { status: 400 }
+        { error: "Database error while finding visitor" },
+        { status: 500 }
       );
     }
 
@@ -83,16 +82,23 @@ export async function POST(req: Request) {
       );
     }
 
-    // then check if the user is blocked to entry
-    const anyBlockedEntry = await prisma.visitorRegistration.findFirst({
-      where: {
-        id: qrData.visitorId,
-        isBlocked: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    let anyBlockedEntry;
+    try {
+      anyBlockedEntry = await prisma.visitorRegistration.findFirst({
+        where: {
+          id: qrData.visitorId,
+          isBlocked: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Database error while checking blocked entries" },
+        { status: 500 }
+      );
+    }
 
     if (anyBlockedEntry) {
       return NextResponse.json(
@@ -105,60 +111,84 @@ export async function POST(req: Request) {
       );
     }
 
-    const existingActiveEntry = await prisma.visitorEntry.findFirst({
-      where: {
-        visitorId: qrData.visitorId,
-        entryStatus: "CHECKED_IN",
-      },
-    });
-
-    if (existingActiveEntry) {
-      const updatedEntry = await prisma.visitorEntry.update({
-        where: { id: existingActiveEntry.id },
-        data: {
-          checkOutTime: new Date(),
-          entryStatus: "CHECKED_OUT",
-          updatedAt: new Date(),
-        },
-      });
-
-      return NextResponse.json({
-        message: "Visitor checked out successfully",
-        entry: updatedEntry,
-      });
-    } else {
-      const newEntry = await prisma.visitorEntry.create({
-        data: {
+    let existingActiveEntry;
+    try {
+      existingActiveEntry = await prisma.visitorEntry.findFirst({
+        where: {
           visitorId: qrData.visitorId,
           entryStatus: "CHECKED_IN",
-          isBlocked: false,
-          ...(qrData.purpose && { blockedReason: null }),
-          checkInTime: new Date(),
-          checkOutTime: null,
         },
-        include: {
-          visitor: {
-            select: {
-              name: true,
-              email: true,
-              phoneNumber: true,
-              purposeOfVisit: true,
+      });
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Database error while checking active entries" },
+        { status: 500 }
+      );
+    }
+
+    if (existingActiveEntry) {
+      try {
+        const updatedEntry = await prisma.visitorEntry.update({
+          where: { id: existingActiveEntry.id },
+          data: {
+            checkOutTime: new Date(),
+            entryStatus: "CHECKED_OUT",
+            updatedAt: new Date(),
+          },
+        });
+
+        return NextResponse.json({
+          message: "Visitor checked out successfully",
+          entry: updatedEntry,
+        });
+      } catch (error) {
+        return NextResponse.json(
+          { error: "Database error while updating entry for checkout" },
+          { status: 500 }
+        );
+      }
+    } else {
+      try {
+        const newEntry = await prisma.visitorEntry.create({
+          data: {
+            visitorId: qrData.visitorId,
+            entryStatus: "CHECKED_IN",
+            isBlocked: false,
+            ...(qrData.purpose ? { blockedReason: null } : {}),
+            checkInTime: new Date(),
+            checkOutTime: null,
+            updatedAt: new Date(),
+          },
+          include: {
+            visitor: {
+              select: {
+                name: true,
+                email: true,
+                phoneNumber: true,
+                purposeOfVisit: true,
+              },
             },
           },
-        },
-      });
+        });
 
-      return NextResponse.json({
-        message: "Visitor checked in successfully",
-        entry: newEntry,
-      });
+        return NextResponse.json({
+          message: "Visitor checked in successfully",
+          entry: newEntry,
+        });
+      } catch (error) {
+        return NextResponse.json(
+          { error: "Database error while creating new entry for check-in" },
+          { status: 500 }
+        );
+      }
     }
   } catch (error) {
-    console.error("Error processing visitor entry:", error);
     return NextResponse.json(
       { error: "Failed to process visitor entry" },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect(); // Ensure Prisma client is disconnected
   }
 }
 
