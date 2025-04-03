@@ -55,9 +55,10 @@ export async function POST(req: Request) {
         password: hashedPassword,
         role: role || "ADMIN",
         mobileNumber,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     });
-
 
     return NextResponse.json({ success: true, user: newUser , statusCode : 200 });
   } catch (error) {
